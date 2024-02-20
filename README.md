@@ -8,7 +8,7 @@
 Боты проведения викторин исторического музея в мессенджере Telegram и социальной сети ВКонтакте.
 
 ## Установка.
-- Python3 (версия Python 3.10) должен быть уже установлен.
+- Python3 (версия Python 3.10), docker, docker-compose и git должен быть уже установлены в системе.
 - Рекомендуется использовать среду окружения [venv](https://docs.python.org/3/library/venv.html) 
 для изоляции проекта.
  - Используйте `pip` (или `pip3`, если есть конфликт с Python2) для установки зависимостей
@@ -32,7 +32,11 @@ $ pip install -r requirements.txt
 
 
 ## Запуск
-
+Запуск контейнера, Redis
+```console
+$ docker-compose up -d
+```
+Запуск ботов:
 ```console
 $ python3 quiz_tel_bot.py
 ```
@@ -42,7 +46,7 @@ $ python3 quiz_vk_bot.py
 
 
 ## Работающие боты
-[VK](https://vk.com/public223195342) и [Telegram](https://t.me/historical_museum_quiz_bot)
+[VK](https://vk.com/club224740818) и [Telegram](https://t.me/historical_museum_quiz_bot)
 
 ## Пример работы бота
 ![](video_example_work.gif)
