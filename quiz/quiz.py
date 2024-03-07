@@ -2,17 +2,18 @@ from os import scandir
 from random import choice
 
 
-def get_questions_and_answer_from_file(file_name: str = '') -> list:
+def get_random_questions(folder='./questions', file_name='') -> list:
+
     filenames_from_folder = []
     if not file_name:
-        with scandir('./questions') as entries:
+        with scandir(folder) as entries:
             for entry in entries:
                 if entry.is_file():
                     filenames_from_folder.append(entry.name)
-        file_name = f'./questions/{choice(filenames_from_folder)}'
+        file_name = f'{folder}/{choice(filenames_from_folder)}'
 
-    with open(file_name, "r", encoding="KOI8-R") as my_file:
-        file_content_list = my_file.read().split('\n\n')
+    with open(file_name, "r", encoding="KOI8-R") as quiz_file:
+        file_content_list = quiz_file.read().split('\n\n')
 
     questions_and_answers = []
     is_find_question, is_find_answer = False, False
@@ -39,11 +40,3 @@ def get_questions_and_answer_from_file(file_name: str = '') -> list:
             is_find_question, is_find_answer = False, False
 
     return questions_and_answers
-
-
-def random_question() -> dict:
-    return choice(get_questions_and_answer_from_file())
-
-
-if __name__ == '__main__':
-    pass

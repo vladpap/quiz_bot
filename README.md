@@ -1,6 +1,6 @@
 ![Python](https://img.shields.io/badge/python-3670A0?style=for-the-badge&logo=python&logoColor=ffdd54)
 ![Telegram](https://img.shields.io/badge/Telegram-2CA5E0?style=for-the-badge&logo=telegram&logoColor=white)
-[![Vkontakte](https://img.shields.io/badge/-Vkontakte-284CEB?style=for-the-badge&logo=Vk)](https://vk.com/web.step)
+[![Vkontakte](https://img.shields.io/badge/-Vkontakte-2369EB?style=for-the-badge&logo=Vk)](https://vk.com/web.step)
 
 
 # Quiz bots 🤔
@@ -29,6 +29,8 @@ $ pip install -r requirements.txt
 - `REDIS_PORT` - порт базы redis, по умолчанию `6379`
 - `REDIS_TIMEOUT` - максимальное время в миллисекундах, в течение которого разрешено выполнение поискового запроса, по умолчанию `2`
 - `REDIS_RETRY` - стратегией Backoff c максимальным количеством повторов, по умолчанию `3`
+- `QUIZ_FOLDER` - директория где Ваши файлы с вопросами и ответами
+- `QUIZ_FILE` - Ваш файл с вопросами и ответами
 
 
 ## Запуск
