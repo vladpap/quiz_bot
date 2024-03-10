@@ -79,7 +79,9 @@ def cancel(redis_db, vk_api, event):
     )
 
 
-def new_question_request(redis_db, random_questions, vk_api, event, keyboard):
+def handle_new_question_request(
+    redis_db, random_questions, vk_api, event, keyboard
+):
     user_id = event.user_id
     user_base_data = json.loads(redis_db.get(user_id))
 
@@ -146,7 +148,7 @@ def handle_surrender_request(redis_db, random_questions, vk_api, event):
         random_id=get_random_id(),
     )
 
-    new_question_request(
+    handle_new_question_request(
         redis_db, random_questions, vk_api, event, keyboard_answer_attempts()
     )
 
@@ -213,7 +215,7 @@ def main():
 
                     case ButtonChat.New_question.value:
                         is_new_question = False
-                        new_question_request(
+                        handle_new_question_request(
                             redis_db,
                             random_questions,
                             vk_api,
