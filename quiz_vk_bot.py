@@ -53,6 +53,9 @@ def start(redis_db, vk_api, event):
     if not redis_db.exists(user_id):
         redis_db.set(user_id, json.dumps({'score': 0}))
 
+    if 'task' in json.loads(redis_db.get(user_id)).keys():
+        return
+
     vk_api.messages.send(
         user_id=user_id,
         message=f'Приветствую.\n'
@@ -65,11 +68,11 @@ def start(redis_db, vk_api, event):
 
 def cancel(redis_db, vk_api, event):
     user_id = event.user_id
-    user_base_data = json.loads(redis_db.get(user_id))
+    user_from_base = json.loads(redis_db.get(user_id))
 
-    if 'task' in user_base_data.keys():
-        del user_base_data['task']
-        redis_db.set(user_id, json.dumps(user_base_data))
+    if 'task' in user_from_base.keys():
+        del user_from_base['task']
+        redis_db.set(user_id, json.dumps(user_from_base))
 
     vk_api.messages.send(
         user_id=event.user_id,
@@ -83,7 +86,10 @@ def handle_new_question_request(
     redis_db, random_questions, vk_api, event, keyboard
 ):
     user_id = event.user_id
-    user_base_data = json.loads(redis_db.get(user_id))
+    user_from_base = json.loads(redis_db.get(user_id))
+
+    if 'task' in json.loads(redis_db.get(user_id)).keys():
+        return
 
     question_and_answer = choice(random_questions)
 
@@ -94,20 +100,20 @@ def handle_new_question_request(
         keyboard=keyboard,
     )
 
-    user_base_data['task'] = question_and_answer
-    user_base_data['task']['count_answer'] = 0
-    redis_db.set(user_id, json.dumps(user_base_data))
+    user_from_base['task'] = question_and_answer
+    user_from_base['task']['count_answer'] = 0
+    redis_db.set(user_id, json.dumps(user_from_base))
     return
 
 
 def solution_attempt(redis_db, vk_api, event):
     user_id = event.user_id
-    user_base_data = json.loads(redis_db.get(user_id))
+    user_from_base = json.loads(redis_db.get(user_id))
     text = event.text
-    if text.lower() == user_base_data['task']['answer']:
-        user_base_data['score'] += 1
-        del user_base_data['task']
-        redis_db.set(user_id, json.dumps(user_base_data))
+    if text.lower() == user_from_base['task']['answer']:
+        user_from_base['score'] += 1
+        del user_from_base['task']
+        redis_db.set(user_id, json.dumps(user_from_base))
 
         vk_api.messages.send(
             user_id=user_id,
@@ -119,13 +125,12 @@ def solution_attempt(redis_db, vk_api, event):
             keyboard=keyboard_new_question(),
         )
 
-        return True
     else:
-        user_base_data['task']['count_answer'] += 1
-        redis_db.set(user_id, json.dumps(user_base_data))
+        user_from_base['task']['count_answer'] += 1
+        redis_db.set(user_id, json.dumps(user_from_base))
         reply = 'Неправильно… 😪 Попробуешь ещё раз?'
 
-        if user_base_data['task']['count_answer'] > 3:
+        if user_from_base['task']['count_answer'] > 3:
             reply += '\nМожно сдаться.'
 
         vk_api.messages.send(
@@ -134,28 +139,33 @@ def solution_attempt(redis_db, vk_api, event):
             random_id=get_random_id(),
             keyboard=keyboard_answer_attempts(),
         )
-    return False
 
 
 def handle_surrender_request(redis_db, random_questions, vk_api, event):
     user_id = event.user_id
     user_from_base = json.loads(redis_db.get(user_id))
-
+    if 'task' not in json.loads(redis_db.get(user_id)).keys():
+        return
     vk_api.messages.send(
         user_id=user_id,
         message=f'Правильный ответ 🫣:\n'
         f'{user_from_base["task"]["answer"]}\n\n',
         random_id=get_random_id(),
     )
+    del user_from_base['task']
+    redis_db.set(user_id, json.dumps(user_from_base))
 
     handle_new_question_request(
         redis_db, random_questions, vk_api, event, keyboard_answer_attempts()
     )
 
 
-def handle_score_request(redis_db, vk_api, event, keyboard):
+def handle_score_request(redis_db, vk_api, event):
     user_id = event.user_id
     user_base_data = json.loads(redis_db.get(user_id))
+    keyboard = keyboard_new_question()
+    if 'task' in json.loads(redis_db.get(user_id)).keys():
+        keyboard = keyboard_answer_attempts()
     vk_api.messages.send(
         user_id=user_id,
         message=f'Ваш счет:\n{user_base_data["score"]} баллов.',
@@ -199,23 +209,19 @@ def main():
     vk_api = vk_session.get_api()
     longpoll = VkLongPoll(vk_session)
 
-    is_new_question = True
-
     for event in longpoll.listen():
         if not event.to_me:
             continue
         if event.type != VkEventType.MESSAGE_NEW:
             continue
 
-        if is_new_question and event.text == 'start':
+        if event.text == 'start':
             start(redis_db, vk_api, event)
 
         elif event.text == 'cancel':
-            is_new_question = True
             cancel(redis_db, vk_api, event)
 
-        elif is_new_question and event.text == ButtonChat.New_question.value:
-            is_new_question = False
+        elif event.text == ButtonChat.New_question.value:
             handle_new_question_request(
                 redis_db,
                 random_questions,
@@ -226,13 +232,12 @@ def main():
 
         elif event.text == ButtonChat.Score.value:
             handle_score_request(
-                redis_db, vk_api, event, keyboard_new_question()
-            )
-        elif not is_new_question and event.text == ButtonChat.Surrender.value:
+                redis_db, vk_api, event)
+        elif event.text == ButtonChat.Surrender.value:
             handle_surrender_request(redis_db, random_questions, vk_api, event)
 
         else:
-            if is_new_question:
+            if 'task' not in json.loads(redis_db.get(event.user_id)).keys():
                 vk_api.messages.send(
                     user_id=event.user_id,
                     message=f'Нажми {ButtonChat.New_question.value}'
@@ -241,7 +246,7 @@ def main():
                     keyboard=keyboard_new_question(),
                 )
             else:
-                is_new_question = solution_attempt(redis_db, vk_api, event)
+                solution_attempt(redis_db, vk_api, event)
 
 
 if __name__ == '__main__':
