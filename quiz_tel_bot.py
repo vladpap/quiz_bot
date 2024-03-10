@@ -22,9 +22,9 @@ logger = logging.getLogger(__file__)
 
 
 class ButtonChat(Enum):
-    New_question = "Новый вопрос ❓"
-    Surrender = "Сдаться 🤷‍♂️"
-    Score = "Мой счет 🥇"
+    New_question = 'Новый вопрос ❓'
+    Surrender = 'Сдаться 🤷‍♂️'
+    Score = 'Мой счет 🥇'
 
 
 REPLY_KEYBOARD_NEW_QUESTION = [
@@ -36,26 +36,26 @@ REPLY_KEYBOARD_ANSWER_ATTEMPTS = [
 ]
 
 
-State = Enum("State", "NEW_QUESTION ANSWER_ATTEMPTS")
+State = Enum('State', 'NEW_QUESTION ANSWER_ATTEMPTS')
 
 
 async def start(redis_db, update: Update, context):
     chat_id = update.effective_chat.id
     if not redis_db.exists(chat_id):
-        redis_db.set(chat_id, json.dumps({"score": 0}))
+        redis_db.set(chat_id, json.dumps({'score': 0}))
 
     reply_keyboard = REPLY_KEYBOARD_NEW_QUESTION
 
     reply_markup = ReplyKeyboardMarkup(
         reply_keyboard,
         resize_keyboard=True,
-        input_field_placeholder="Ваш выбор ...",
+        input_field_placeholder='Ваш выбор ...',
     )
 
     await update.effective_message.reply_text(
-        f"Приветствую.\n"
-        f'Нажми "{ButtonChat.New_question.value}" для начала викторины.\n'
-        f"/cancel - для отмены",
+        f'Приветствую.\n'
+        f'Нажми {ButtonChat.New_question.value} для начала викторины.\n'
+        f'/cancel - для отмены',
         reply_markup=reply_markup,
     )
 
@@ -66,14 +66,14 @@ async def cancel(redis_db, update: Update, context):
     chat_id = update.effective_chat.id
 
     user_base_data = json.loads(redis_db.get(chat_id))
-    if "task" in user_base_data.keys():
-        del user_base_data["task"]
+    if 'task' in user_base_data.keys():
+        del user_base_data['task']
         redis_db.set(chat_id, json.dumps(user_base_data))
 
     reply_markup = ReplyKeyboardRemove()
 
     await update.effective_message.reply_text(
-        "Всего хорошего.\n" "Для начала викторины введите команду /start",
+        'Всего хорошего.\n' 'Для начала викторины введите команду /start',
         reply_markup=reply_markup,
     )
 
@@ -90,18 +90,18 @@ async def handle_new_question_request(
     reply_markup = ReplyKeyboardMarkup(
         reply_keyboard,
         resize_keyboard=True,
-        input_field_placeholder="Ваш ответ ...",
+        input_field_placeholder='Ваш ответ ...',
     )
 
     question_and_answer = choice(random_questions)
 
     await update.effective_message.reply_text(
-        f"Вопрос:\n" f'{question_and_answer["question"]}',
+        f'Вопрос:\n' f'{question_and_answer["question"]}',
         reply_markup=reply_markup,
     )
 
-    user_base_data["task"] = question_and_answer
-    user_base_data["task"]["count_answer"] = 0
+    user_base_data['task'] = question_and_answer
+    user_base_data['task']['count_answer'] = 0
     redis_db.set(chat_id, json.dumps(user_base_data))
     return State.ANSWER_ATTEMPTS
 
@@ -116,11 +116,11 @@ async def handle_surrender_request(
     reply_markup = ReplyKeyboardMarkup(
         reply_keyboard,
         resize_keyboard=True,
-        input_field_placeholder="Ваш выбор ...",
+        input_field_placeholder='Ваш выбор ...',
     )
 
     await update.effective_message.reply_text(
-        f"Правильный ответ 🫣:\n" f'{user_base_data["task"]["answer"]}\n\n',
+        f'Правильный ответ 🫣:\n' f'{user_base_data["task"]["answer"]}\n\n',
         reply_markup=reply_markup,
     )
 
@@ -140,33 +140,33 @@ async def handle_solution_attempt(redis_db, update: Update, context):
     chat_id = update.effective_chat.id
     user_base_data = json.loads(redis_db.get(chat_id))
     text = update.effective_message.text
-    if text.lower() == user_base_data["task"]["answer"]:
-        user_base_data["score"] += 1
-        del user_base_data["task"]
+    if text.lower() == user_base_data['task']['answer']:
+        user_base_data['score'] += 1
+        del user_base_data['task']
         redis_db.set(chat_id, json.dumps(user_base_data))
 
         reply_keyboard = REPLY_KEYBOARD_NEW_QUESTION
         reply_markup = ReplyKeyboardMarkup(
             reply_keyboard,
             resize_keyboard=True,
-            input_field_placeholder="Ваш выбор ...",
+            input_field_placeholder='Ваш выбор ...',
         )
 
         await update.effective_message.reply_text(
-            f"Правильно! 🥳 Поздравляю!\n"
-            f"Для следующего вопроса нажми «{ButtonChat.New_question.value}»\n"
-            f"/cancel - для отмены",
+            f'Правильно! 🥳 Поздравляю!\n'
+            f'Для следующего вопроса нажми «{ButtonChat.New_question.value}»\n'
+            f'/cancel - для отмены',
             reply_markup=reply_markup,
         )
 
         return State.NEW_QUESTION
     else:
-        user_base_data["task"]["count_answer"] += 1
+        user_base_data['task']['count_answer'] += 1
         redis_db.set(chat_id, json.dumps(user_base_data))
-        reply = "Неправильно… 😪 Попробуешь ещё раз?"
+        reply = 'Неправильно… 😪 Попробуешь ещё раз?'
 
-        if user_base_data["task"]["count_answer"] > 3:
-            reply += "\nМожно сдаться."
+        if user_base_data['task']['count_answer'] > 3:
+            reply += '\nМожно сдаться.'
         await update.effective_message.reply_text(reply)
     return State.ANSWER_ATTEMPTS
 
@@ -174,37 +174,37 @@ async def handle_solution_attempt(redis_db, update: Update, context):
 def main():
     logging.basicConfig(
         level=logging.INFO,
-        filename="tel_bot.log",
-        filemode="w",
-        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+        filename='tel_bot.log',
+        filemode='w',
+        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     )
 
     env = Env()
     env.read_env()
 
-    token_tel_bot = env.str("TELEGRAM_BOT_TOKEN")
-    quiz_files_folder = env.str("QUIZ_FOLDER", default=None)
-    quiz_file_name = env.str("QUIZ_FILE", default=None)
+    token_tel_bot = env.str('TELEGRAM_BOT_TOKEN')
+    quiz_files_folder = env.str('QUIZ_FOLDER', default=None)
+    quiz_file_name = env.str('QUIZ_FILE', default=None)
 
     redis_db = redis.client.Redis(
         decode_responses=True,
-        host=env.str("REDIS_HOST", default="0.0.0.0"),
-        port=env.int("REDIS_PORT", default=6379),
-        socket_timeout=env.int("REDIS_TIMEOUT", default=2),
+        host=env.str('REDIS_HOST', default='0.0.0.0'),
+        port=env.int('REDIS_PORT', default=6379),
+        socket_timeout=env.int('REDIS_TIMEOUT', default=2),
         retry=redis.retry.Retry(
             redis.backoff.ExponentialBackoff(),
-            env.int("REDIS_RETRY", default=3),
+            env.int('REDIS_RETRY', default=3),
         ),
         retry_on_error=[BusyLoadingError, ConnectionError, TimeoutError],
     )
 
     random_questions = get_random_questions(
-        quiz_folder=quiz_files_folder, quiz_file=quiz_file_name
+        folder=quiz_files_folder, file_name=quiz_file_name
     )
     application = ApplicationBuilder().token(token_tel_bot).build()
 
     conv_handler = ConversationHandler(
-        entry_points=[CommandHandler("start", partial(start, redis_db))],
+        entry_points=[CommandHandler('start', partial(start, redis_db))],
         states={
             State.NEW_QUESTION: [
                 MessageHandler(
@@ -217,7 +217,7 @@ def main():
                     filters.Regex(ButtonChat.Score.value),
                     partial(handle_score_request, redis_db),
                 ),
-                CommandHandler("cancel", partial(cancel, redis_db)),
+                CommandHandler('cancel', partial(cancel, redis_db)),
             ],
             State.ANSWER_ATTEMPTS: [
                 MessageHandler(
@@ -229,13 +229,13 @@ def main():
                 MessageHandler(
                     filters.Regex(ButtonChat.Score.value), handle_score_request
                 ),
-                CommandHandler("cancel", cancel),
+                CommandHandler('cancel', cancel),
                 MessageHandler(
                     filters.TEXT, partial(handle_solution_attempt, redis_db)
                 ),
             ],
         },
-        fallbacks=[CommandHandler("cancel", cancel)],
+        fallbacks=[CommandHandler('cancel', cancel)],
     )
 
     application.add_handler(conv_handler)
@@ -243,5 +243,5 @@ def main():
     application.run_polling()
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()
